@@ -1,0 +1,18 @@
+MEETING NOTES: Project Alpha Kickoff
+
+Date: January 13, 2026
+Attendees: Sarah (PM), Mike (Dev), Lisa (Design)
+Duration: 1 hour
+
+Key Discussion Points:
+1. Project timeline: 8 weeks starting Feb 1
+2. Tech stack: React + Node.js + PostgreSQL
+3. Design mockups ready by Jan 20
+4. First sprint planning on Jan 27
+
+Action Items:
+- Sarah: Create project plan and share with team
+- Mike: Set up development environment
+- Lisa: Finalize wireframes by Friday
+
+Next Meeting: January 20, 2026 @ 2pm

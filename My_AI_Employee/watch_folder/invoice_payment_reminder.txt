@@ -1,0 +1,16 @@
+INVOICE PAYMENT REMINDER - URGENT
+
+Invoice #: INV-2026-001
+Amount Due: $5,450.00
+Due Date: January 15, 2026
+Client: Acme Corporation
+
+This payment is now 2 days overdue. Please process immediately to avoid late fees.
+
+Payment Instructions:
+- Wire Transfer: Account #12345678
+- Check: Mail to 123 Business St
+- Online: portal.example.com/pay
+
+Contact: billing@example.com
+Phone: (555) 123-4567

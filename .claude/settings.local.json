@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash .specify/scripts/bash/create-phr.sh:*)",
+      "Bash(git fetch:*)",
+      "Bash(ls:*)",
+      "Bash(bash:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(if [ -d \"D:/code/Q4/HACKATHON-ZERO/My_AI_Employee/specs/001-bronze-ai-employee/checklists\" ])",
+      "Bash(then echo \"EXISTS\")",
+      "Bash(else echo \"NOT_FOUND\")",
+      "Bash(fi)",
+      "Bash(uv add:*)",
+      "Skill(obsidian-vault-ops)",
+      "Skill(watcher-runner-filesystem)",
+      "Bash(uv run python:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(.specify/scripts/bash/create-phr.sh:*)",
+      "Bash(find:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
