@@ -74,17 +74,6 @@ uv run pytest tests/ -v
 # Expected: 11/11 passing
 ```
 
-## Feature Comparison
-
-| Feature | Bronze | Silver | Gold |
-|---------|--------|--------|------|
-| Filesystem Watching | ✓ | ✓ | ✓ |
-| Action Items | ✓ | ✓ | ✓ |
-| Deduplication | ✓ | ✓ | ✓ |
-| Email Monitoring | - | ✓ | ✓ |
-| AI Triage | - | ✓ | ✓ |
-| Task Execution | - | - | ✓ |
-
 ## Documentation
 
 - [Specification](specs/001-bronze-ai-employee/spec.md)
@@ -97,4 +86,4 @@ uv run pytest tests/ -v
 **Bronze Tier: Complete ✓**  
 **Silver & Gold: Coming Soon**
 
-Built for Hackathon Zero
+Built for Hackathon Zero By Ashna Ghazanfar
