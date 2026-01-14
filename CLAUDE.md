@@ -208,3 +208,4 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+dont not create any file starting with tmpclaude and ending with -cwd anywhere

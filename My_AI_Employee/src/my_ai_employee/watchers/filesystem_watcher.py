@@ -143,16 +143,21 @@ class FilesystemWatcher(BaseWatcher):
                 "source_id": self._generate_stable_id(file_path),
             }
 
-            # Create content with reference to original file
-            content = f"""# File Drop: {file_path.name}
+            # Read file content
+            file_content = self._read_file_content(file_path)
 
-## File Information
+            # Create content with file information and actual content
+            content = f"""## Content
+
+{file_content}
+
+## Metadata
+
+- **Source File**: `{file_path.name}`
 - **Original Path**: `{file_path.absolute()}`
 - **File Size**: {self._format_file_size(file_size)}
 - **Detected**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
-
-## Action Required
-This file has been dropped into the watch folder. Review and determine next steps.
+- **Watcher**: filesystem_watcher
 """
 
             # Create frontmatter Post object
@@ -169,6 +174,65 @@ This file has been dropped into the watch folder. Review and determine next step
                 exc_info=True,
             )
             return None
+
+    def _read_file_content(self, file_path: Path) -> str:
+        """Read and return file content safely.
+
+        Args:
+            file_path: Path to the file to read
+
+        Returns:
+            File content as string, or error message if unreadable
+        """
+        # Define max file size (5MB)
+        MAX_FILE_SIZE = 5 * 1024 * 1024
+
+        try:
+            file_size = file_path.stat().st_size
+
+            # Check file size
+            if file_size == 0:
+                return "*[Empty file - no content]*"
+
+            if file_size > MAX_FILE_SIZE:
+                return (
+                    f"*[File too large to display: {self._format_file_size(file_size)}. "
+                    f"Maximum size: {self._format_file_size(MAX_FILE_SIZE)}]*\n\n"
+                    f"Please review the original file at: `{file_path.absolute()}`"
+                )
+
+            # Try to read as text with common encodings
+            encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']
+
+            for encoding in encodings:
+                try:
+                    with open(file_path, 'r', encoding=encoding) as f:
+                        content = f.read()
+
+                    # Successfully read - return content
+                    logger.debug(f"Read file with {encoding} encoding: {file_path}")
+                    return content.strip()
+
+                except (UnicodeDecodeError, UnicodeError):
+                    # Try next encoding
+                    continue
+                except Exception as e:
+                    logger.warning(f"Error reading file with {encoding}: {e}")
+                    continue
+
+            # If all encodings failed, it's likely a binary file
+            return (
+                f"*[Binary file detected - cannot display content]*\n\n"
+                f"File type: `{file_path.suffix}`\n"
+                f"Please review the original file at: `{file_path.absolute()}`"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to read file {file_path}: {e}", exc_info=True)
+            return (
+                f"*[Error reading file: {str(e)}]*\n\n"
+                f"Please review the original file at: `{file_path.absolute()}`"
+            )
 
     def _generate_stable_id(self, file_path: Path) -> str:
         """Generate a stable identifier for deduplication.
