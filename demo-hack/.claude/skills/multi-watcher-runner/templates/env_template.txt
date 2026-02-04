@@ -1,0 +1,38 @@
+# Multi-Watcher Configuration Template (.env)
+
+# Gmail OAuth Setup
+GMAIL_CREDENTIALS_FILE=credentials.json
+GMAIL_TOKEN_FILE=token.json
+GMAIL_EMAIL=your-email@gmail.com
+GMAIL_SCOPES=https://www.googleapis.com/auth/gmail.readonly
+
+# LinkedIn API Setup
+LINKEDIN_ACCESS_TOKEN=your_linkedin_token_here
+LINKEDIN_API_VERSION=202601
+
+# WhatsApp Session
+WHATSAPP_SESSION_FILE=.whatsapp_session
+WHATSAPP_HEADLESS=false        # Set to true for production (no browser UI)
+WHATSAPP_TIMEOUT_MS=30000
+WHATSAPP_CHECK_INTERVAL=120
+
+# Filesystem Watcher
+WATCH_FOLDER=My_AI_Employee/test_watch_folder
+
+# Vault Configuration
+VAULT_ROOT=My_AI_Employee/AI_Employee_Vault
+
+# Watcher General Configuration
+WATCHER_CHECK_INTERVAL=30      # Health check every 30 seconds
+WATCHER_MAX_RETRIES=5          # Max retries before marking dead
+WATCHER_BACKOFF_MAX=300        # Max backoff in seconds (5 minutes)
+WATCHER_LOG_LEVEL=INFO         # DEBUG, INFO, WARNING, ERROR
+
+# Check Frequencies (in seconds)
+GMAIL_CHECK_INTERVAL=300       # Every 5 minutes
+LINKEDIN_CHECK_INTERVAL=600    # Every 10 minutes
+
+# Optional: PM2 Configuration
+PM2_NAME=multi-watchers
+PM2_INTERPRETER=python3
+PM2_INSTANCES=1

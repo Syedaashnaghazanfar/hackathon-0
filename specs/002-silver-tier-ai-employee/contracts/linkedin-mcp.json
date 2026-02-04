@@ -1,0 +1,271 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LinkedIn MCP Server",
+    "version": "1.0.0",
+    "description": "FastMCP server for posting to LinkedIn via UGC Post API with OAuth 2.0 bearer token"
+  },
+  "servers": [
+    {
+      "url": "mcp://linkedin-server",
+      "description": "Model Context Protocol LinkedIn server"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "PublishPostRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "description": "Post content (max 3000 characters for LinkedIn)",
+            "example": "Excited to share our Q4 results! #business #growth"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["PUBLIC", "CONNECTIONS"],
+            "description": "Post visibility level",
+            "default": "PUBLIC"
+          },
+          "hashtags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Hashtags to include (without # prefix)",
+            "default": []
+          },
+          "link_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional URL to attach to post"
+          },
+          "link_title": {
+            "type": "string",
+            "description": "Title for attached link preview"
+          }
+        }
+      },
+      "PublishPostResponse": {
+        "type": "object",
+        "required": ["post_id", "status", "published_at"],
+        "properties": {
+          "post_id": {
+            "type": "string",
+            "description": "LinkedIn post URN",
+            "example": "urn:li:ugcPost:1234567890"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["published", "pending", "failed"],
+            "description": "Publication status"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when post was published (ISO 8601)"
+          },
+          "post_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Public URL of the published post"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if status is 'failed'"
+          }
+        }
+      },
+      "HealthCheckResponse": {
+        "type": "object",
+        "required": ["status", "authenticated"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "unhealthy"],
+            "description": "Server health status"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "description": "Whether LinkedIn access token is valid"
+          },
+          "rate_limit_remaining": {
+            "type": "integer",
+            "description": "Remaining API calls in current window"
+          },
+          "rate_limit_resets_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When rate limit window resets"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error details if unhealthy"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "error_code"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "error_code": {
+            "type": "string",
+            "enum": [
+              "AUTHENTICATION_FAILED",
+              "INVALID_REQUEST",
+              "RATE_LIMIT_EXCEEDED",
+              "NETWORK_ERROR",
+              "PERMISSION_DENIED",
+              "TEXT_TOO_LONG"
+            ],
+            "description": "Error code for programmatic handling"
+          },
+          "retry_after": {
+            "type": "integer",
+            "description": "Seconds to wait before retrying (for rate limits)"
+          }
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "publish_post",
+      "description": "Publish a text post to LinkedIn via UGC Post API. Supports public or connections-only visibility, hashtags, and link attachments. Rate limited to 100 posts/day for individual accounts.",
+      "inputSchema": {
+        "$ref": "#/components/schemas/PublishPostRequest"
+      },
+      "outputSchema": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/PublishPostResponse"},
+          {"$ref": "#/components/schemas/ErrorResponse"}
+        ]
+      },
+      "examples": [
+        {
+          "name": "Simple text post",
+          "input": {
+            "text": "Excited to announce our new product launch! #innovation #tech",
+            "visibility": "PUBLIC",
+            "hashtags": ["innovation", "tech"]
+          },
+          "output": {
+            "post_id": "urn:li:ugcPost:1234567890",
+            "status": "published",
+            "published_at": "2026-01-22T15:00:00Z",
+            "post_url": "https://www.linkedin.com/feed/update/urn:li:ugcPost:1234567890"
+          }
+        },
+        {
+          "name": "Post with link attachment",
+          "input": {
+            "text": "Check out our latest blog post on AI automation.",
+            "visibility": "CONNECTIONS",
+            "link_url": "https://example.com/blog/ai-automation",
+            "link_title": "AI Automation Best Practices"
+          },
+          "output": {
+            "post_id": "urn:li:ugcPost:0987654321",
+            "status": "published",
+            "published_at": "2026-01-22T15:10:00Z",
+            "post_url": "https://www.linkedin.com/feed/update/urn:li:ugcPost:0987654321"
+          }
+        }
+      ],
+      "errors": [
+        {
+          "code": "AUTHENTICATION_FAILED",
+          "description": "LinkedIn access token expired or invalid. Run 'uv run python scripts/setup/linkedin_oauth2_setup.py' to refresh credentials.",
+          "http_status": 401
+        },
+        {
+          "code": "RATE_LIMIT_EXCEEDED",
+          "description": "LinkedIn API rate limit exceeded (100 posts/day). Wait 'retry_after' seconds before retrying.",
+          "http_status": 429
+        },
+        {
+          "code": "TEXT_TOO_LONG",
+          "description": "Post text exceeds 3000 character limit.",
+          "http_status": 400
+        },
+        {
+          "code": "PERMISSION_DENIED",
+          "description": "LinkedIn app does not have 'w_member_social' permission. User must approve permission in LinkedIn Developer Portal.",
+          "http_status": 403
+        }
+      ]
+    },
+    {
+      "name": "health_check",
+      "description": "Check if the LinkedIn server is healthy and access token is valid. Returns authentication status and rate limit information.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "$ref": "#/components/schemas/HealthCheckResponse"
+      },
+      "examples": [
+        {
+          "name": "Healthy server",
+          "input": {},
+          "output": {
+            "status": "healthy",
+            "authenticated": true,
+            "rate_limit_remaining": 95,
+            "rate_limit_resets_at": "2026-01-23T00:00:00Z"
+          }
+        },
+        {
+          "name": "Token expired",
+          "input": {},
+          "output": {
+            "status": "unhealthy",
+            "authenticated": false,
+            "error": "LinkedIn access token expired - run linkedin_oauth2_setup.py"
+          }
+        }
+      ]
+    }
+  ],
+  "authentication": {
+    "type": "oauth2",
+    "description": "LinkedIn API requires OAuth 2.0 bearer token. Token stored in .env (LINKEDIN_ACCESS_TOKEN, LINKEDIN_PERSON_URN)",
+    "flows": {
+      "authorizationCode": {
+        "authorizationUrl": "https://www.linkedin.com/oauth/v2/authorization",
+        "tokenUrl": "https://www.linkedin.com/oauth/v2/accessToken",
+        "scopes": {
+          "w_member_social": "Write posts on behalf of user"
+        }
+      }
+    }
+  },
+  "dryRun": {
+    "enabled": true,
+    "description": "When DRY_RUN=true in .env, 'publish_post' logs execution but does not publish to LinkedIn. Returns success response with mock post_id.",
+    "environment_variable": "DRY_RUN"
+  },
+  "retryPolicy": {
+    "strategy": "exponential_backoff",
+    "backoffSequence": [1, 2, 4],
+    "maxRetries": 3,
+    "retriableErrors": ["NETWORK_ERROR", "RATE_LIMIT_EXCEEDED"]
+  },
+  "rateLimits": {
+    "daily": {
+      "limit": 100,
+      "description": "Maximum 100 posts per day for individual LinkedIn accounts"
+    },
+    "hourly": {
+      "limit": 20,
+      "description": "Maximum 20 posts per hour (recommended to avoid rate limiting)"
+    }
+  }
+}

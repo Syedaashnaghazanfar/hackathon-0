@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Credentials and Secrets
+.env
+*.env
+credentials.json
+token.json
+
+# Session Persistence
+.whatsapp_session/
+.gmail_dedupe.json
+.whatsapp_dedupe.json
+.linkedin_dedupe.json
+
+# Obsidian Vault (contains sensitive logs)
+AI_Employee_Vault/
+
+# PM2 Logs
+.pm2/
+pm2.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/

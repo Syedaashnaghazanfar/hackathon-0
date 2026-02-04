@@ -58,3 +58,26 @@ def save_action_item(file_path: Path | str, post: frontmatter.Post) -> None:
     # This avoids the binary/text mode issue with frontmatter.dump()
     content = frontmatter.dumps(post)
     file_path.write_text(content, encoding="utf-8")
+
+
+def create_action_item_from_data(
+    metadata: Dict[str, Any], content: str
+) -> frontmatter.Post:
+    """
+    Create a new frontmatter.Post object from metadata and content.
+
+    Args:
+        metadata: Dictionary of YAML frontmatter fields
+        content: Markdown content body
+
+    Returns:
+        frontmatter.Post object ready to be saved
+
+    Example:
+        >>> metadata = {"type": "email", "priority": "high", "status": "pending"}
+        >>> content = "This is the email content..."
+        >>> post = create_action_item_from_data(metadata, content)
+        >>> save_action_item("Needs_Action/new_item.md", post)
+    """
+    post = frontmatter.Post(content, **metadata)
+    return post

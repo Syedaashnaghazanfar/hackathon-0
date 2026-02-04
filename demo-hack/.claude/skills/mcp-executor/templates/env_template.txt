@@ -1,0 +1,174 @@
+# ============================================================================
+# SILVER TIER MCP EXECUTOR CONFIGURATION
+# ============================================================================
+# Copy this file to .env and edit with your values
+# DO NOT commit .env to version control (contains credentials)
+
+# ============================================================================
+# EMAIL MCP SERVER CONFIGURATION
+# ============================================================================
+
+# Choose email backend: 'gmail' (default, OAuth) or 'smtp' (universal)
+# Default: gmail
+EMAIL_BACKEND=gmail
+
+# ============================================================================
+# OPTION 1: GMAIL API BACKEND (OAuth 2.0 - Secure)
+# ============================================================================
+# Use this if you want secure Gmail API integration
+# Requires OAuth 2.0 credentials from Google Cloud Console
+
+# Path to credentials.json downloaded from Google Cloud Console
+# Get it from: https://console.cloud.google.com/credentials
+# REQUIRED for EMAIL_BACKEND=gmail
+GMAIL_CREDENTIALS_FILE=credentials.json
+
+# Path to token.json (auto-created on first OAuth flow)
+# This file stores the OAuth token and is refreshed automatically
+GMAIL_TOKEN_FILE=token.json
+
+# ============================================================================
+# OPTION 2: SMTP BACKEND (TLS - Works with Any Email Provider)
+# ============================================================================
+# Use this if you want SMTP integration with any email provider
+
+# SMTP server hostname
+# Examples:
+#   Gmail: smtp.gmail.com
+#   Outlook: smtp.office365.com
+#   Yahoo: smtp.mail.yahoo.com
+#   Custom: mail.example.com
+# REQUIRED for EMAIL_BACKEND=smtp
+SMTP_HOST=smtp.gmail.com
+
+# SMTP server port
+# Common: 587 (TLS encryption), 465 (SSL encryption)
+# Default: 587
+SMTP_PORT=587
+
+# SMTP authentication username (email address)
+# Example: user@gmail.com
+# REQUIRED for EMAIL_BACKEND=smtp
+SMTP_USERNAME=your_email@gmail.com
+
+# SMTP authentication password
+# For Gmail: Use app-specific password (not your regular password)
+#   Get it from: https://myaccount.google.com/apppasswords
+# For Outlook: Use your password or app password
+# For Yahoo: Use app password from https://login.yahoo.com/account/security
+# REQUIRED for EMAIL_BACKEND=smtp
+SMTP_PASSWORD=your_app_specific_password_here
+
+# SMTP from address (optional, defaults to SMTP_USERNAME)
+# Use this if you want emails to come from a different address
+# Example: notifications@company.com
+SMTP_FROM_ADDRESS=your_email@gmail.com
+
+# ============================================================================
+# MCP EXECUTOR CONFIGURATION
+# ============================================================================
+
+# Vault root directory containing AI_Employee_Vault
+# Default: My_AI_Employee/AI_Employee_Vault
+VAULT_ROOT=My_AI_Employee/AI_Employee_Vault
+
+# Check interval in seconds (how often to check /Approved/ folder)
+# Default: 5 seconds
+EXECUTOR_CHECK_INTERVAL=5
+
+# Maximum retry attempts for failed actions
+# Default: 3 attempts
+EXECUTOR_MAX_RETRIES=3
+
+# Retry backoff delay in seconds (delay between retries)
+# Default: 25 seconds
+EXECUTOR_RETRY_BACKOFF=25
+
+# ============================================================================
+# LINKEDIN MCP SERVER CONFIGURATION
+# ============================================================================
+
+# LinkedIn API access token (OAuth 2.0)
+# Get from: https://www.linkedin.com/developers/apps
+# Expires after 60 days - must be refreshed
+LINKEDIN_ACCESS_TOKEN=your_linkedin_access_token_here
+
+# LinkedIn Person URN (your LinkedIn profile ID)
+# Format: urn:li:person:YOURPERSONID
+# Find it in your profile URL: linkedin.com/in/yourprofile/
+LINKEDIN_PERSON_URN=urn:li:person:YOURPERSONID
+
+# LinkedIn API version (YYYYMM format)
+# Default: 202601 (January 2026)
+LINKEDIN_API_VERSION=202601
+
+# ============================================================================
+# BROWSER AUTOMATION MCP SERVER CONFIGURATION (Playwright)
+# ============================================================================
+
+# Browser automation timeout in milliseconds
+# Default: 30000 (30 seconds)
+BROWSER_TIMEOUT=30000
+
+# Run browser in headless mode (no GUI window shown)
+# Default: true
+BROWSER_HEADLESS=true
+
+# ============================================================================
+# AUDIT LOGGING CONFIGURATION
+# ============================================================================
+
+# Audit log file path
+# Default: logs/audit.log
+AUDIT_LOG_FILE=logs/audit.log
+
+# Audit log retention in days
+# Logs older than this are archived
+# Default: 90 days
+AUDIT_LOG_RETENTION_DAYS=90
+
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+
+# Log level: DEBUG, INFO, WARNING, ERROR
+# Default: INFO
+LOG_LEVEL=INFO
+
+# Log file for executor
+# Default: logs/executor.log
+EXECUTOR_LOG_FILE=logs/executor.log
+
+# ============================================================================
+# QUICK START GUIDE
+# ============================================================================
+#
+# GMAIL API (Default):
+#   1. Set EMAIL_BACKEND=gmail
+#   2. Download credentials.json from Google Cloud Console
+#   3. Place in project root
+#   4. On first run, follow OAuth prompt
+#   5. Token.json will be created automatically
+#
+# SMTP (Gmail):
+#   1. Set EMAIL_BACKEND=smtp
+#   2. Set SMTP_HOST=smtp.gmail.com
+#   3. Set SMTP_PORT=587
+#   4. Set SMTP_USERNAME=your@gmail.com
+#   5. Generate app-specific password at https://myaccount.google.com/apppasswords
+#   6. Set SMTP_PASSWORD to app-specific password
+#
+# SMTP (Outlook):
+#   1. Set EMAIL_BACKEND=smtp
+#   2. Set SMTP_HOST=smtp.office365.com
+#   3. Set SMTP_PORT=587
+#   4. Set SMTP_USERNAME=your@outlook.com
+#   5. Set SMTP_PASSWORD=your_password
+#
+# SMTP (Custom):
+#   1. Set EMAIL_BACKEND=smtp
+#   2. Set SMTP_HOST=mail.company.com
+#   3. Set SMTP_PORT=587 (or 465 for SSL)
+#   4. Set SMTP_USERNAME=user@company.com
+#   5. Set SMTP_PASSWORD=company_password
+#   6. Optionally set SMTP_FROM_ADDRESS=notifications@company.com

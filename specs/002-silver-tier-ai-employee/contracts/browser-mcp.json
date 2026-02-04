@@ -1,0 +1,252 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Browser MCP Server",
+    "version": "1.0.0",
+    "description": "FastMCP server for browser automation via Playwright (WhatsApp Web, form filling, web interactions)"
+  },
+  "servers": [
+    {
+      "url": "mcp://browser-automation-server",
+      "description": "Model Context Protocol browser automation server"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "SendWhatsAppMessageRequest": {
+        "type": "object",
+        "required": ["contact", "message"],
+        "properties": {
+          "contact": {
+            "type": "string",
+            "description": "Contact name or phone number (+1234567890 format)",
+            "example": "John Doe"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Message text to send",
+            "example": "Hi John, the payment has been processed."
+          },
+          "wait_for_sent": {
+            "type": "boolean",
+            "description": "Wait for message to be sent (checkmark appears)",
+            "default": true
+          }
+        }
+      },
+      "SendWhatsAppMessageResponse": {
+        "type": "object",
+        "required": ["status", "sent_at"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["sent", "pending", "failed"],
+            "description": "Message delivery status"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when message was sent (ISO 8601)"
+          },
+          "contact": {
+            "type": "string",
+            "description": "Contact name/number message was sent to"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if status is 'failed'"
+          }
+        }
+      },
+      "HealthCheckResponse": {
+        "type": "object",
+        "required": ["status", "browser_running"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "unhealthy"],
+            "description": "Server health status"
+          },
+          "browser_running": {
+            "type": "boolean",
+            "description": "Whether Playwright browser instance is active"
+          },
+          "whatsapp_authenticated": {
+            "type": "boolean",
+            "description": "Whether WhatsApp Web session is authenticated"
+          },
+          "session_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When WhatsApp session expires (estimated)"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error details if unhealthy"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "error_code"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "error_code": {
+            "type": "string",
+            "enum": [
+              "BROWSER_NOT_RUNNING",
+              "WHATSAPP_NOT_AUTHENTICATED",
+              "CONTACT_NOT_FOUND",
+              "NETWORK_ERROR",
+              "SESSION_EXPIRED",
+              "TIMEOUT"
+            ],
+            "description": "Error code for programmatic handling"
+          },
+          "retry_after": {
+            "type": "integer",
+            "description": "Seconds to wait before retrying"
+          }
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "send_whatsapp_message",
+      "description": "Send a message via WhatsApp Web using Playwright browser automation. Requires one-time QR code scan for authentication (session persists in .whatsapp_session/ directory).",
+      "inputSchema": {
+        "$ref": "#/components/schemas/SendWhatsAppMessageRequest"
+      },
+      "outputSchema": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/SendWhatsAppMessageResponse"},
+          {"$ref": "#/components/schemas/ErrorResponse"}
+        ]
+      },
+      "examples": [
+        {
+          "name": "Send message to contact",
+          "input": {
+            "contact": "John Doe",
+            "message": "Hi John, the invoice has been sent to your email.",
+            "wait_for_sent": true
+          },
+          "output": {
+            "status": "sent",
+            "sent_at": "2026-01-22T15:00:00Z",
+            "contact": "John Doe"
+          }
+        },
+        {
+          "name": "Send message to phone number",
+          "input": {
+            "contact": "+12345678900",
+            "message": "Payment confirmation for order #12345",
+            "wait_for_sent": true
+          },
+          "output": {
+            "status": "sent",
+            "sent_at": "2026-01-22T15:05:00Z",
+            "contact": "+12345678900"
+          }
+        }
+      ],
+      "errors": [
+        {
+          "code": "WHATSAPP_NOT_AUTHENTICATED",
+          "description": "WhatsApp Web session not authenticated. QR code scan required. Run 'uv run python scripts/setup/whatsapp_auth.py' to authenticate.",
+          "http_status": 401
+        },
+        {
+          "code": "CONTACT_NOT_FOUND",
+          "description": "Contact name not found in WhatsApp contacts. Ensure contact exists or use phone number (+1234567890 format).",
+          "http_status": 404
+        },
+        {
+          "code": "TIMEOUT",
+          "description": "Message sending timed out after 30 seconds. Check network connection and WhatsApp Web status.",
+          "http_status": 408
+        },
+        {
+          "code": "SESSION_EXPIRED",
+          "description": "WhatsApp Web session expired. QR code scan required to re-authenticate.",
+          "http_status": 401
+        }
+      ]
+    },
+    {
+      "name": "health_check",
+      "description": "Check if the browser automation server is healthy and WhatsApp Web is authenticated. Returns browser status and session information.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "$ref": "#/components/schemas/HealthCheckResponse"
+      },
+      "examples": [
+        {
+          "name": "Healthy server with authenticated session",
+          "input": {},
+          "output": {
+            "status": "healthy",
+            "browser_running": true,
+            "whatsapp_authenticated": true,
+            "session_expires_at": "2026-02-22T00:00:00Z"
+          }
+        },
+        {
+          "name": "Session not authenticated",
+          "input": {},
+          "output": {
+            "status": "unhealthy",
+            "browser_running": true,
+            "whatsapp_authenticated": false,
+            "error": "WhatsApp Web session not authenticated - QR code scan required"
+          }
+        }
+      ]
+    }
+  ],
+  "authentication": {
+    "type": "session-based",
+    "description": "WhatsApp Web uses QR code authentication. Session persisted in .whatsapp_session/ directory (gitignored). One-time scan required, then reused on restart.",
+    "setup_steps": [
+      "1. Run 'uv run python scripts/setup/whatsapp_auth.py'",
+      "2. Scan QR code displayed in terminal with WhatsApp mobile app",
+      "3. Session saved to .whatsapp_session/ directory",
+      "4. Future runs reuse session (no QR scan needed)"
+    ]
+  },
+  "dryRun": {
+    "enabled": true,
+    "description": "When DRY_RUN=true in .env, 'send_whatsapp_message' logs execution but does not actually send message. Returns success response with mock timestamp.",
+    "environment_variable": "DRY_RUN"
+  },
+  "retryPolicy": {
+    "strategy": "exponential_backoff",
+    "backoffSequence": [1, 2, 4],
+    "maxRetries": 3,
+    "retriableErrors": ["NETWORK_ERROR", "TIMEOUT"]
+  },
+  "browserConfiguration": {
+    "engine": "Playwright (Chromium)",
+    "headless": true,
+    "persistentContext": true,
+    "contextDir": ".whatsapp_session/",
+    "cdpPort": 9222,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  },
+  "notes": [
+    "WhatsApp Web has no official API - browser automation is the only option for consumer accounts",
+    "Session may expire after 14-30 days of inactivity (varies by WhatsApp policy)",
+    "Rate limiting: WhatsApp may flag accounts sending too many messages (no official limits published)",
+    "Contact names must match exactly as they appear in WhatsApp contacts list",
+    "Phone numbers must include country code (e.g., +1 for US)"
+  ]
+}
