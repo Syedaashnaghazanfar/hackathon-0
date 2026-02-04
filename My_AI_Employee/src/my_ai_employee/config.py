@@ -38,8 +38,8 @@ class Config:
     linkedin_person_urn: str
 
     # WhatsApp Browser Automation
-    whatsapp_session_dir: str
-    whatsapp_cdp_port: int
+    whatsapp_session_dir: str  # Directory containing session.json file
+    whatsapp_cdp_port: int  # Not used in new implementation (kept for compatibility)
     whatsapp_headless: bool  # Run browser in headless mode
 
     # Global Settings
