@@ -35,7 +35,8 @@
       "Bash(then echo \"Vault exists\")",
       "Bash(else echo \"Vault does not exist\")",
       "Bash(pm2:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
