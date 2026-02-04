@@ -1,0 +1,272 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Email MCP Server",
+    "version": "1.0.0",
+    "description": "FastMCP server for sending emails via Gmail API with OAuth 2.0 authentication"
+  },
+  "servers": [
+    {
+      "url": "mcp://email-server",
+      "description": "Model Context Protocol email server"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "SendEmailRequest": {
+        "type": "object",
+        "required": ["to", "subject", "body"],
+        "properties": {
+          "to": {
+            "type": "string",
+            "format": "email",
+            "description": "Recipient email address",
+            "example": "recipient@example.com"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Email subject line",
+            "example": "Q4 Financial Report"
+          },
+          "body": {
+            "type": "string",
+            "description": "Email body (plain text or HTML)",
+            "example": "Please find attached the Q4 financial report..."
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            },
+            "description": "CC recipients (optional)",
+            "default": []
+          },
+          "bcc": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            },
+            "description": "BCC recipients (optional)",
+            "default": []
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Attachment file paths (optional)",
+            "default": []
+          },
+          "html": {
+            "type": "boolean",
+            "description": "Whether body is HTML (default: false)",
+            "default": false
+          }
+        }
+      },
+      "SendEmailResponse": {
+        "type": "object",
+        "required": ["message_id", "status", "sent_at"],
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Gmail message ID",
+            "example": "msg_abc123def456"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["sent", "queued", "failed"],
+            "description": "Delivery status"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when email was sent (ISO 8601)"
+          },
+          "thread_id": {
+            "type": "string",
+            "description": "Gmail thread ID (for replies)"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if status is 'failed'"
+          }
+        }
+      },
+      "HealthCheckResponse": {
+        "type": "object",
+        "required": ["status", "authenticated"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "unhealthy"],
+            "description": "Server health status"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "description": "Whether OAuth token is valid"
+          },
+          "token_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When OAuth token expires (if authenticated)"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error details if unhealthy"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "error_code"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "error_code": {
+            "type": "string",
+            "enum": [
+              "AUTHENTICATION_FAILED",
+              "INVALID_REQUEST",
+              "RATE_LIMIT_EXCEEDED",
+              "NETWORK_ERROR",
+              "ATTACHMENT_NOT_FOUND"
+            ],
+            "description": "Error code for programmatic handling"
+          },
+          "retry_after": {
+            "type": "integer",
+            "description": "Seconds to wait before retrying (for rate limits)"
+          }
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "send_email",
+      "description": "Send an email via Gmail API with OAuth 2.0 authentication. Supports plain text or HTML body, CC/BCC recipients, and file attachments. Automatically retries on transient failures with exponential backoff.",
+      "inputSchema": {
+        "$ref": "#/components/schemas/SendEmailRequest"
+      },
+      "outputSchema": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/SendEmailResponse"},
+          {"$ref": "#/components/schemas/ErrorResponse"}
+        ]
+      },
+      "examples": [
+        {
+          "name": "Simple text email",
+          "input": {
+            "to": "boss@company.com",
+            "subject": "Q4 Report Ready",
+            "body": "The Q4 financial report is ready for review."
+          },
+          "output": {
+            "message_id": "msg_abc123",
+            "status": "sent",
+            "sent_at": "2026-01-22T15:00:00Z",
+            "thread_id": "thread_xyz789"
+          }
+        },
+        {
+          "name": "Email with attachment",
+          "input": {
+            "to": "client@example.com",
+            "subject": "Invoice #12345",
+            "body": "Please find your invoice attached.",
+            "attachments": ["/path/to/invoice_12345.pdf"]
+          },
+          "output": {
+            "message_id": "msg_def456",
+            "status": "sent",
+            "sent_at": "2026-01-22T15:05:00Z"
+          }
+        }
+      ],
+      "errors": [
+        {
+          "code": "AUTHENTICATION_FAILED",
+          "description": "OAuth token expired or invalid. Run 'uv run python scripts/setup/setup_gmail_oauth.py' to refresh credentials.",
+          "http_status": 401
+        },
+        {
+          "code": "RATE_LIMIT_EXCEEDED",
+          "description": "Gmail API rate limit exceeded (100 emails/day for free tier). Wait 'retry_after' seconds before retrying.",
+          "http_status": 429
+        },
+        {
+          "code": "INVALID_REQUEST",
+          "description": "Invalid recipient email address or missing required field.",
+          "http_status": 400
+        },
+        {
+          "code": "ATTACHMENT_NOT_FOUND",
+          "description": "Attachment file path does not exist or is not readable.",
+          "http_status": 404
+        }
+      ]
+    },
+    {
+      "name": "health_check",
+      "description": "Check if the email server is healthy and OAuth credentials are valid. Returns authentication status and token expiration time.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "$ref": "#/components/schemas/HealthCheckResponse"
+      },
+      "examples": [
+        {
+          "name": "Healthy server",
+          "input": {},
+          "output": {
+            "status": "healthy",
+            "authenticated": true,
+            "token_expires_at": "2026-01-29T15:00:00Z"
+          }
+        },
+        {
+          "name": "Token expired",
+          "input": {},
+          "output": {
+            "status": "unhealthy",
+            "authenticated": false,
+            "error": "OAuth token expired - run setup_gmail_oauth.py"
+          }
+        }
+      ]
+    }
+  ],
+  "authentication": {
+    "type": "oauth2",
+    "description": "Gmail API requires OAuth 2.0 authentication. Credentials stored in .env (GMAIL_CREDENTIALS_FILE, GMAIL_TOKEN_FILE)",
+    "flows": {
+      "authorizationCode": {
+        "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth",
+        "tokenUrl": "https://oauth2.googleapis.com/token",
+        "scopes": {
+          "https://www.googleapis.com/auth/gmail.modify": "Read, send, and modify emails"
+        }
+      }
+    }
+  },
+  "dryRun": {
+    "enabled": true,
+    "description": "When DRY_RUN=true in .env, 'send_email' logs execution but does not send actual email. Returns success response with mock message_id.",
+    "environment_variable": "DRY_RUN"
+  },
+  "retryPolicy": {
+    "strategy": "exponential_backoff",
+    "backoffSequence": [1, 2, 4],
+    "maxRetries": 3,
+    "retriableErrors": ["NETWORK_ERROR", "RATE_LIMIT_EXCEEDED"]
+  }
+}

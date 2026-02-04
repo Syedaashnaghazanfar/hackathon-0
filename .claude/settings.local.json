@@ -18,7 +18,24 @@
       "Bash(.specify/scripts/bash/create-phr.sh:*)",
       "Bash(find:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Skill(skill-creator)",
+      "Bash(python:*)",
+      "Bash(tree:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(audit:*)",
+      "Bash(mcp)",
+      "Bash(multi)",
+      "Bash(needs)",
+      "Bash(obsidian \")",
+      "Bash(git rev-parse:*)",
+      "Bash(uv sync:*)",
+      "Bash(if [ -d \"AI_Employee_Vault\" ])",
+      "Bash(then echo \"Vault exists\")",
+      "Bash(else echo \"Vault does not exist\")",
+      "Bash(pm2:*)",
+      "Bash(timeout:*)"
     ]
   }
 }

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Company_Handbook.md",
+                "file": "Pending_Approval/test-email-001-approval.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Company_Handbook"
+              "title": "test-email-001-approval"
             }
           }
         ]
@@ -182,12 +182,13 @@
   },
   "active": "500abd38ad6157d8",
   "lastOpenFiles": [
+    "Done/test-email-004-completed.md",
+    "Done/FILE_invoice_payment_reminder_20260113_152623.md",
+    "Company_Handbook.md",
     "Dashboard.md",
     "Welcome.md",
-    "Company_Handbook.md",
     "Done/FILE_newsletter_january_2026_20260113_152812.md",
     "Done/FILE_meeting_notes_project_alpha_20260113_152812.md",
-    "Done/FILE_invoice_payment_reminder_20260113_152623.md",
     "Needs_Action/FILE_test_document_20260113_101457.md",
     "Needs_Action/FILE_newsletter_january_2026_20260113_152812.md",
     "Needs_Action/FILE_meeting_notes_project_alpha_20260113_152812.md",
