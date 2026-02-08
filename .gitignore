@@ -65,3 +65,4 @@ Thumbs.db
 .coverage
 htmlcov/
 My_AI_Employee/NUL
+.claude/settings.local.json
