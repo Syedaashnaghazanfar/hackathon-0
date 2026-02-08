@@ -34,12 +34,16 @@ token.json
 
 # Session Persistence
 .whatsapp_session/
+.social_session/
 .gmail_dedupe.json
 .whatsapp_dedupe.json
 .linkedin_dedupe.json
+.xero_tokens.json
+.xero_sync_state.json
+.social_interactions_state.json
 
 # Obsidian Vault (contains sensitive logs)
-AI_Employee_Vault/
+AI_Employee_Vault/Logs/
 
 # PM2 Logs
 .pm2/
@@ -60,3 +64,5 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+My_AI_Employee/NUL
+.claude/settings.local.json

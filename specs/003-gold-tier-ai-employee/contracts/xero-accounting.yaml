@@ -1,0 +1,292 @@
+openapi: 3.0.0
+info:
+  title: Xero Accounting Integration
+  description: Xero accounting integration for Gold Tier AI Employee - transaction sync, invoice tracking, financial reports
+  version: 1.0.0
+  contact:
+    name: Gold Tier AI Employee
+    url: https://github.com/anthropics/hackathon-zero
+
+servers:
+  - url: https://api.xero.com/api.xro/2.0
+    description: Official Xero API (requires OAuth2)
+
+paths:
+  /Invoices:
+    get:
+      summary: Fetch invoices from Xero
+      description: Retrieves invoices matching optional filters (status, date range)
+      operationId: get_invoices
+      parameters:
+        - name: Status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, SUBMITTED, AUTHORISED, PAID, VOIDED]
+          description: Filter by invoice status
+        - name: Date
+          in: query
+          schema:
+            type: string
+            format: date
+            description: Filter by invoice date (YYYY-MM-DD)
+          example: "2026-01-01"
+      responses:
+        '200':
+          description: Invoices retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Invoices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        InvoiceID:
+                          type: string
+                          format: uuid
+                        InvoiceNumber:
+                          type: string
+                          example: "INV-0010"
+                        Contact:
+                          type: object
+                          properties:
+                            Name:
+                              type: string
+                              example: "Client A"
+                        Date:
+                          type: string
+                          format: date
+                          example: "2026-01-05"
+                        DueDate:
+                          type: string
+                          format: date
+                          example: "2026-01-20"
+                        Total:
+                          type: number
+                          format: decimal
+                          example: 1500.00
+                        Status:
+                          type: string
+                          enum: [DRAFT, SUBMITTED, AUTHORISED, PAID, VOIDED]
+                        AmountDue:
+                          type: number
+                          format: decimal
+                          example: 1500.00
+        '401':
+          description: Authentication failed (token expired)
+        '429':
+          description: Rate limit exceeded (60 requests/minute)
+
+  /BankTransactions:
+    get:
+      summary: Fetch bank transactions from Xero
+      description: Retrieves bank transactions for specified account and date range
+      operationId: get_bank_transactions
+      parameters:
+        - name: BankAccountID
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Xero bank account ID
+        - name: DateFrom
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Start date for transaction range
+          example: "2026-01-01"
+        - name: DateTo
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date for transaction range
+          example: "2026-01-31"
+      responses:
+        '200':
+          description: Bank transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  BankTransactions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        BankTransactionID:
+                          type: string
+                          format: uuid
+                        Date:
+                          type: string
+                          format: date
+                          example: "2026-01-03"
+                        Amount:
+                          type: number
+                          format: decimal
+                          example: 54.99
+                        Description:
+                          type: string
+                          example: "Adobe CC Subscription"
+                        AccountCode:
+                          type: string
+                          example: "610"
+
+  /Reports/BalanceSheet:
+    get:
+      summary: Generate balance sheet report
+      description: Retrieves balance sheet for financial summary in CEO briefing
+      operationId: get_balance_sheet
+      parameters:
+        - name: Date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Report as-of date
+          example: "2026-01-31"
+      responses:
+        '200':
+          description: Balance sheet generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Reports:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ReportID:
+                          type: string
+                        ReportName:
+                          type: string
+                        ReportDate:
+                          type: string
+                          format: date
+                        Rows:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              RowType:
+                                type: string
+                              Cells:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    Value:
+                                      type: string
+
+  /financial-summary:
+    post:
+      summary: Generate financial summary for CEO briefing
+      description: Calculates revenue, expenses, profit for specified period (week/month/YTD)
+      operationId: get_financial_summary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - period
+              properties:
+                period:
+                  type: string
+                  enum: [week, month, ytd]
+                  description: Time period for summary
+                  example: "month"
+                base_currency:
+                  type: string
+                  description: Base currency for conversion (default: USD)
+                  example: "USD"
+      responses:
+        '200':
+          description: Financial summary calculated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revenue:
+                    type: object
+                    properties:
+                      period:
+                        type: number
+                        format: decimal
+                        example: 4300.00
+                      mtd:
+                        type: number
+                        format: decimal
+                        example: 4500.00
+                      ytd:
+                        type: number
+                        format: decimal
+                        example: 8500.00
+                  expenses:
+                    type: object
+                    properties:
+                      period:
+                        type: number
+                        format: decimal
+                        example: 500.00
+                      mtd:
+                        type: number
+                        format: decimal
+                        example: 1200.00
+                      ytd:
+                        type: number
+                        format: decimal
+                        example: 4500.00
+                  profit:
+                    type: object
+                    properties:
+                      period:
+                        type: number
+                        format: decimal
+                        example: 3800.00
+                      mtd:
+                        type: number
+                        format: decimal
+                        example: 3300.00
+                      ytd:
+                        type: number
+                        format: decimal
+                        example: 4000.00
+                  by_category:
+                    type: object
+                    description: Expense breakdown by category
+                    additionalProperties:
+                      type: number
+                      format: decimal
+                    example:
+                      Software: 150.00
+                      Hosting: 45.00
+                      Services: 305.00
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.xero.com/identity/connect/authorize
+          tokenUrl: https://identity.xero.com/connect/token
+          scopes:
+            - "accounting.transactions"
+            - "accounting.contacts"
+            - "accounting.reports.read"
+            - "accounting.settings"
+
+security:
+  - OAuth2: []

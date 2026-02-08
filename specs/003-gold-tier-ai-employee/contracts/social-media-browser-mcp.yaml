@@ -1,0 +1,399 @@
+openapi: 3.0.0
+info:
+  title: Social Media Browser MCP
+  description: Unified browser automation MCP server for Facebook, Instagram, and Twitter/X posting via Playwright
+  version: 1.0.0
+  contact:
+    name: Gold Tier AI Employee
+    url: https://github.com/anthropics/hackathon-zero
+
+servers:
+  - url: http://localhost:9223
+    description: Local FastMCP server (runs on CDP port 9223)
+
+paths:
+  /tools/post_to_facebook:
+    post:
+      summary: Post content to Facebook page
+      description: Publishes text and/or image content to authenticated Facebook page feed via browser automation
+      operationId: post_to_facebook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  description: Post content text
+                  maxLength: 63206
+                  example: "Excited to share our latest project! 🚀"
+                image_path:
+                  type: string
+                  format: uri
+                  description: Local file path to image attachment (optional)
+                  example: "AI_Employee_Vault/Attachments/project_screenshot.jpg"
+      responses:
+        '200':
+          description: Post published successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  post_url:
+                    type: string
+                    format: uri
+                    example: "https://facebook.com/posts/123456789"
+                  platform_post_id:
+                    type: string
+                    example: "123456789_987654321"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-01-06T08:01:23Z"
+        '400':
+          description: Invalid request (missing text, image not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed (session expired)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Platform error (rate limit, downtime)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tools/post_to_instagram:
+    post:
+      summary: Post content to Instagram business account
+      description: Publishes text and image content to authenticated Instagram business account via browser automation
+      operationId: post_to_instagram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+                - image_path
+              properties:
+                text:
+                  type: string
+                  description: Caption text (supports hashtags and mentions)
+                  maxLength: 2200
+                  example: "New project launch! 🚀 #webdev #custombuild"
+                image_path:
+                  type: string
+                  format: uri
+                  description: Local file path to image (required for Instagram)
+                  example: "AI_Employee_Vault/Attachments/project_screenshot.jpg"
+      responses:
+        '200':
+          description: Post published successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  post_url:
+                    type: string
+                    format: uri
+                    example: "https://instagram.com/p/ABC123/"
+                  platform_post_id:
+                    type: string
+                    example: "ABC123"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-01-06T08:01:23Z"
+        '400':
+          description: Invalid request (missing image, unsupported format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed (session expired)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Platform error (rate limit, downtime)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tools/post_to_twitter:
+    post:
+      summary: Post content to Twitter/X
+      description: Publishes text and/or image content to authenticated Twitter/X account via browser automation. Supports threads.
+      operationId: post_to_twitter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tweets
+              properties:
+                tweets:
+                  type: array
+                  description: Array of tweets (thread support)
+                  maxItems: 10
+                  items:
+                    type: object
+                    required:
+                      - text
+                    properties:
+                      text:
+                        type: string
+                        description: Tweet text (will be validated < 280 chars)
+                        maxLength: 280
+                        example: "Excited to announce our latest project! 🚀 (1/3)"
+                      image_path:
+                        type: string
+                        format: uri
+                        description: Local file path to image (optional, Twitter supports 1 image per tweet)
+                        example: "AI_Employee_Vault/Attachments/project_screenshot.jpg"
+      responses:
+        '200':
+          description: Tweets published successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tweets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tweet_url:
+                          type: string
+                          format: uri
+                          example: "https://twitter.com/user/status/1234567890"
+                        platform_tweet_id:
+                          type: string
+                          example: "1234567890"
+                  thread_url:
+                    type: string
+                    format: uri
+                    description: URL to first tweet (thread starter)
+                    example: "https://twitter.com/user/status/1234567890"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-01-06T08:01:23Z"
+        '400':
+          description: Invalid request (tweet > 280 chars, invalid image)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed (session expired)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Platform error (rate limit, downtime)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tools/get_engagement_summary:
+    post:
+      summary: Get engagement summary for all platforms
+      description: Retrieves engagement metrics (likes, comments, shares) for recent posts across all platforms
+      operationId: get_engagement_summary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - platform
+              properties:
+                platform:
+                  type: string
+                  enum: [facebook, instagram, twitter]
+                  description: Platform to query
+                days_back:
+                  type: integer
+                  description: Number of days to look back (default: 7)
+                  minimum: 1
+                  maximum: 30
+                  default: 7
+                  example: 7
+      responses:
+        '200':
+          description: Engagement summary retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  platform:
+                    type: string
+                    example: "facebook"
+                  period:
+                    type: string
+                    example: "2026-01-01 to 2026-01-07"
+                  total_posts:
+                    type: integer
+                    example: 3
+                  total_likes:
+                    type: integer
+                    example: 125
+                  total_comments:
+                    type: integer
+                    example: 28
+                  total_shares:
+                    type: integer
+                    example: 12
+                  top_post:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                      likes:
+                        type: integer
+                      comments:
+                        type: integer
+                      shares:
+                        type: integer
+        '401':
+          description: Authentication failed (session expired)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tools/social_media_health_check:
+    post:
+      summary: Health check for social media sessions
+      description: Verifies authentication status for all platforms, detects expired sessions
+      operationId: social_media_health_check
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: Health status for all platforms
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  platforms:
+                    type: object
+                    properties:
+                      facebook:
+                        type: object
+                        properties:
+                          authenticated:
+                            type: boolean
+                          session_age_hours:
+                            type: number
+                            description: Hours since last login
+                          last_post_date:
+                            type: string
+                            format: date-time
+                            nullable: true
+                      instagram:
+                        type: object
+                        properties:
+                          authenticated:
+                            type: boolean
+                          session_age_hours:
+                            type: number
+                          last_post_date:
+                            type: string
+                            format: date-time
+                            nullable: true
+                      twitter:
+                        type: object
+                        properties:
+                          authenticated:
+                            type: boolean
+                          session_age_hours:
+                            type: number
+                          last_post_date:
+                            type: string
+                            format: date-time
+                            nullable: true
+                  needs_reauth:
+                    type: array
+                    items:
+                      type: string
+                    description: List of platforms requiring re-authentication
+                    example: ["instagram"]
+
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          enum: [validation_error, auth_error, rate_limit_error, platform_error]
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+        retry_after:
+          type: integer
+          description: Seconds to wait before retry (for rate_limit_error)
+          example: 60
+      example:
+        error: auth_error
+        message: "Instagram session expired. Please re-login via social-media-browser-mcp skill."
+        details:
+          platform: "instagram"
+          session_file: ".social_session/instagram/cookies.json"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: OAuth2 bearer token (for future API authentication, not used in browser automation)
+
+security: []
