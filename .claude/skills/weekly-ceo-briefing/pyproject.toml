@@ -1,0 +1,19 @@
+[project]
+name = "weekly-ceo-briefing"
+version = "1.0.0"
+description = "Monday Morning CEO Briefing generator for autonomous business audit"
+requires-python = ">=3.13"
+dependencies = [
+    "python-frontmatter>=1.0.0",
+    "pyyaml>=6.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.12.0",
+]

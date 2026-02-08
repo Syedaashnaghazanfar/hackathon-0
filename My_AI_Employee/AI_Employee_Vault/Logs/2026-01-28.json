@@ -1,0 +1,74 @@
+[
+  {
+    "timestamp": "2026-01-28T14:45:56.705261",
+    "action_type": "send_email",
+    "execution_status": "error",
+    "executor": "ai_employee",
+    "executor_id": "orchestrator",
+    "tool_name": "send_email",
+    "tool_inputs_sanitized": {
+      "to": "[EMAIL_REDACTED]",
+      "subject": "Test Email from AI Employee",
+      "body_preview": "This is a test email in DRY-RUN mode. No actual email will be sent."
+    },
+    "approval_reason": null,
+    "approval_id": null,
+    "mcp_server": "email",
+    "error": "'FunctionTool' object is not callable",
+    "retry_count": 2
+  },
+  {
+    "timestamp": "2026-01-28T14:50:00.002653",
+    "action_type": "send_email",
+    "execution_status": "error",
+    "executor": "ai_employee",
+    "executor_id": "orchestrator",
+    "tool_name": "send_email",
+    "tool_inputs_sanitized": {
+      "to": "[EMAIL_REDACTED]",
+      "subject": "Test Email from AI Employee - Orchestrator Test",
+      "body_preview": "This is a test email in DRY-RUN mode. No actual email will be sent. Testing orchestrator functionality."
+    },
+    "approval_reason": null,
+    "approval_id": null,
+    "mcp_server": "email",
+    "error": "'FunctionTool' object is not callable",
+    "retry_count": 2
+  },
+  {
+    "timestamp": "2026-01-28T14:51:32.915603",
+    "action_type": "send_email",
+    "execution_status": "dry_run",
+    "executor": "ai_employee",
+    "executor_id": "orchestrator",
+    "tool_name": "send_email",
+    "tool_inputs_sanitized": {
+      "to": "[EMAIL_REDACTED]",
+      "subject": "Test Email from AI Employee - Third Test",
+      "body_preview": "This is test email"
+    },
+    "approval_reason": null,
+    "approval_id": null,
+    "mcp_server": "email",
+    "error": null,
+    "retry_count": 0
+  },
+  {
+    "timestamp": "2026-01-28T14:54:03.088040",
+    "action_type": "send_email",
+    "execution_status": "dry_run",
+    "executor": "ai_employee",
+    "executor_id": "orchestrator",
+    "tool_name": "send_email",
+    "tool_inputs_sanitized": {
+      "to": "[EMAIL_REDACTED]",
+      "subject": "Test Email - Logging Fixed",
+      "body_preview": "This is test email"
+    },
+    "approval_reason": null,
+    "approval_id": null,
+    "mcp_server": "email",
+    "error": null,
+    "retry_count": 0
+  }
+]

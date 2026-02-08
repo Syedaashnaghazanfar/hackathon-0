@@ -1,0 +1,581 @@
+# Data Model: Gold Tier AI Employee
+
+**Feature**: Gold Tier AI Employee
+**Date**: 2026-02-05
+**Status**: Complete
+
+## Overview
+
+This document defines all data entities for Gold Tier features: Monday Morning CEO Briefing, Social Media Cross-Posting, Xero Accounting Integration, and Social Media Monitoring.
+
+## Entity Definitions
+
+### 1. Business_Goals
+
+**Description**: Vault markdown file storing business objectives, revenue targets, key metrics, active projects, and subscription audit rules. Single source of truth for CEO briefing targets.
+
+**Location**: `AI_Employee_Vault/Business_Goals.md`
+
+**Frontmatter Schema**:
+```yaml
+---
+monthly_goal: 10000.00              # float - Monthly revenue target in base currency
+currency: USD                       # string - Base currency for all financial calculations
+target_date: "2026-01-31"          # date - Goal deadline
+metrics:                            # list - Key performance indicators
+  - metric: "Client response time"
+    target: "< 24 hours"
+    alert_threshold: "> 48 hours"
+    current: "18 hours"
+  - metric: "Invoice payment rate"
+    target: "> 90%"
+    alert_threshold: "< 80%"
+    current: "85%"
+active_projects:                   # list - Current project tracking
+  - name: "Project Alpha"
+    due_date: "2026-01-15"
+    budget: 2000.00
+    status: "On Track"
+audit_rules:                       # dict - Cost optimization rules
+  unused_subscription_days: 30      # Flag if no login in X days
+  cost_increase_threshold: 20       # Flag if cost increased > X%
+---
+```
+
+**Body Structure**:
+```markdown
+# Business Goals
+
+## Q1 2026 Objectives
+
+### Revenue Target
+- Monthly goal: $10,000
+- Current MTD: $4,500
+- Target date: January 31
+
+### Key Metrics to Track
+
+| Metric | Target | Alert Threshold | Current |
+|--------|--------|-----------------|---------|
+| Client response time | < 24 hours | > 48 hours | 18 hours |
+| Invoice payment rate | > 90% | < 80% | 85% |
+| Software costs | < $500/month | > $600/month | $450 |
+
+### Active Projects
+
+1. Project Alpha - Due Jan 15 - Budget $2,000 - Status: On Track
+2. Project Beta - Due Jan 30 - Budget $3,000 - Status: At Risk
+
+### Subscription Audit Rules
+
+Flag for review if:
+- No login in 30 days
+- Cost increased > 20%
+- Duplicate functionality with another tool
+```
+
+**Validation Rules**:
+- `monthly_goal` MUST be positive number
+- `target_date` MUST be future date
+- `metrics` list MUST have at least one entry
+- `active_projects` list optional (may be empty)
+
+**State Transitions**: None (static configuration file, updated manually by user)
+
+---
+
+### 2. Monday_Briefing
+
+**Description**: Generated markdown document with comprehensive business audit analysis. Auto-created by weekly_audit.py every Monday at 7:00 AM.
+
+**Location**: `AI_Employee_Vault/Briefings/YYYY-MM-DD_Monday_Briefing.md`
+
+**Frontmatter Schema**:
+```yaml
+---
+generated: "2026-01-06T07:00:00Z"   # datetime - ISO 8601 timestamp
+period: "2025-12-30 to 2026-01-05"   # string - Date range covered
+week_number: 1                       # integer - ISO week number (1-52)
+health_score: 85                     # integer - Overall business health (0-100)
+revenue_progress: 45.0               # float - Revenue target completion %
+on_time_rate: 92.0                   # float - Tasks completed on time %
+bottleneck_count: 2                  # integer - Number of delayed tasks
+---
+```
+
+**Body Structure**:
+```markdown
+# Monday Morning CEO Briefing - Week of January 6, 2026
+
+## Executive Summary
+
+Strong week with revenue ahead of target. One bottleneck identified in Project Beta.
+
+**Overall Status**: 🟢 On Track
+
+---
+
+## Revenue
+
+### This Week
+- **Total**: $4,300
+- **Sources**: 3 clients
+- **Largest**: Client B ($2,000)
+
+### Month-to-Date
+- **Current**: $4,500 (45% of $10,000 target)
+- **Trend**: ✅ On track
+- **Days Remaining**: 26
+
+### Revenue Sources
+- 2026-01-05: Client A - Project Alpha - $1,500.00
+- 2026-01-10: Client B - Website - $2,000.00
+- 2026-01-12: Consulting - TechCorp - $800.00
+
+---
+
+## Completed Tasks
+
+### This Week's Performance
+- **Total Completed**: 12 tasks
+- **On-Time Rate**: 92%
+- **Overdue**: 1 tasks
+
+---
+
+## Bottlenecks
+
+| Task | Delay | Severity |
+|------|-------|----------|
+| Project Beta - Design | +3 days | HIGH |
+| Client C Proposal | +1 day | MEDIUM |
+
+---
+
+## Cost Optimization Opportunities
+
+### Software Subscriptions Under Review
+
+**Notion**: No team activity in 45 days
+- Cost: $15/month
+- Last login: November 22, 2025
+- **Recommendation**: Cancel or consolidate to alternative
+- **Savings**: $180/year
+
+---
+
+## Action Items for CEO
+
+### Today (High Priority)
+- [ ] Follow up with Project Beta client for missing assets
+- [ ] Send portfolio to TechCorp referral
+
+### This Week (Medium Priority)
+- [ ] Audit Notion usage
+- [ ] Reassign Adobe licenses
+
+---
+
+## Notes
+
+Generated by AI Employee v1.0 (Gold Tier)
+Report Period: December 30, 2025 - January 5, 2026
+Next Briefing: January 13, 2026
+```
+
+**Validation Rules**:
+- `generated` MUST be valid ISO 8601 datetime
+- `health_score` MUST be between 0-100
+- `revenue_progress` MUST be between 0-100
+- All currency amounts MUST be positive numbers
+
+**State Transitions**: None (generated once, never modified)
+
+**Indexes**: Queryable by `generated` date for chronological navigation
+
+---
+
+### 3. Social_Post_Action
+
+**Description**: Social media post action item requiring human approval before execution. Created manually by user or auto-generated from scheduled posts.
+
+**Location**:
+- Pending: `AI_Employee_Vault/Pending_Approval/social_post_*.md`
+- Approved: `AI_Employee_Vault/Approved/social_post_*.md`
+- Done: `AI_Employee_Vault/Done/Social_Media_Posts/social_post_*.md`
+- Failed: `AI_Employee_Vault/Failed/social_post_*.md`
+
+**Frontmatter Schema**:
+```yaml
+---
+type: "social_post"                  # literal - Type identifier
+platform: "facebook"                 # enum - Platform: facebook|instagram|twitter
+content_type: "text_image"           # enum - Content: text|image|video|text_image
+status: "pending"                    # enum - Status: pending|approved|posted|failed
+created: "2026-01-06T08:00:00Z"     # datetime - ISO 8601 creation timestamp
+scheduled_date: "2026-01-08T08:00:00Z" # datetime|optional - When to post
+approved: "2026-01-06T09:30:00Z"     # datetime|optional - Approval timestamp
+posted_at: "2026-01-08T08:01:23Z"    # datetime|null - Execution timestamp
+post_url: "https://facebook.com/..." # string|null - URL to published post
+platform_post_id: "abc123"           # string|null - Platform-specific post ID
+engagement_initial: 0                # integer|optional - Initial likes/comments
+failed_reason: "auth_expired"        # string|optional - Error if failed
+retry_count: 0                       # integer - Number of retry attempts
+---
+```
+
+**Body Structure**:
+```markdown
+# Social Post: New Project Announcement
+
+## Content
+
+**Text**: "Excited to share our latest project - a custom e-commerce platform for Local Bakery! 🧁✨"
+
+**Image**: `AI_Employee_Vault/Attachments/project_screenshot.jpg`
+
+**Hashtags**: #webdev #ecommerce #custombuild
+
+**Mentions**: @localbakery
+
+## Target Platform
+
+**Facebook**: Post to page feed with image attachment
+
+## Scheduling
+
+**Scheduled**: Monday, January 8, 2026 at 8:00 AM
+
+## Approval Decision
+
+**[ ] APPROVE** - Move this file to `/Approved/` folder
+**[ ] REJECT** - Move this file to `/Rejected/` folder with reason
+```
+
+**Validation Rules**:
+- `platform` MUST be one of: facebook, instagram, twitter
+- `content_type` MUST match platform capabilities (e.g., video not supported on Twitter basic tier)
+- `status` MUST follow workflow: pending → approved → posted OR pending → failed
+- `post_url` MUST be valid URL if `status == "posted"`
+
+**State Transitions**:
+```
+pending → approved (human approves)
+approved → posted (successful execution)
+approved → failed (execution error after 3 retries)
+pending → rejected (human rejects)
+```
+
+**Indexes**: Queryable by `platform`, `status`, `scheduled_date`
+
+---
+
+### 4. Accounting_Entry
+
+**Description**: Financial transaction record synced from Xero or manually entered. Stored in Accounting/Current_Month.md as markdown table.
+
+**Location**: `AI_Employee_Vault/Accounting/Current_Month.md`
+
+**Table Schema**:
+
+**Revenue Table**:
+```markdown
+## Revenue Summary
+
+| Date | Source | Invoice ID | Amount | Status | Notes |
+|------|--------|------------|--------|--------|-------|
+| 2026-01-05 | Client A - Project Alpha | INV-0010 | $1,500.00 | Paid | Deposit received |
+| 2026-01-10 | Client B - Website | INV-0011 | $2,000.00 | Paid | Full payment |
+| 2026-01-12 | Consulting - TechCorp | INV-0012 | $800.00 | Pending | Hourly work |
+
+**Total Revenue**: $4,300.00
+```
+
+**Expenses Table**:
+```markdown
+## Expenses
+
+| Date | Category | Description | Amount | Account | Notes |
+|------|----------|-------------|--------|---------|-------|
+| 2026-01-01 | Software | Adobe CC | $54.99 | 610 | Monthly subscription |
+| 2026-01-01 | Software | Notion | $15.00 | 610 | Monthly subscription |
+| 2026-01-03 | Hosting | AWS | $45.00 | 620 | Server costs |
+
+**Total Expenses**: $114.99
+**Net Profit**: $4,185.01
+```
+
+**Field Definitions**:
+- `Date` (date): Transaction date in YYYY-MM-DD format
+- `Source` (string): For revenue - "Client Name - Project Description"
+- `Category` (enum): For expenses - Software|Hosting|Services|Hardware|Other
+- `Invoice ID` (string): Xero invoice identifier (revenue only)
+- `Amount` (decimal): Transaction amount in base currency (positive number)
+- `Status` (enum): Invoice status - Paid|Pending|Draft|Overdue (revenue only)
+- `Account` (string): Xero account code (expenses only)
+- `Notes` (string): Optional additional context
+
+**Validation Rules**:
+- `Date` MUST be valid date in current month
+- `Amount` MUST be positive decimal with 2 decimal places
+- `Status` MUST be one of: Paid, Pending, Draft, Overdue
+- `Category` for expenses MUST be one of: Software, Hosting, Services, Hardware, Other
+- `Account` for expenses MUST be valid Xero account code (600-699 range)
+
+**State Transitions**:
+- Invoice status: Draft → Pending → Paid OR Draft → Pending → Overdue
+- No transitions for expenses (static records)
+
+**Indexes**: Queryable by `Date`, `Status` (revenue), `Category` (expenses)
+
+---
+
+### 5. Xero_Token
+
+**Description**: OAuth2 authentication token for Xero API access. Stored locally, gitignored, auto-refreshed before expiry.
+
+**Location**: `AI_Employee_Vault/.xero_tokens.json` (gitignored)
+
+**Schema**:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "tenant_id": "xxx-xxx-xxx",
+  "expires_at": "2026-01-06T10:30:00Z",
+  "token_type": "Bearer",
+  "scope": "accounting.transactions accounting.contacts accounting.reports.read"
+}
+```
+
+**Field Definitions**:
+- `access_token` (string): Current active token for API requests (expires 30 minutes)
+- `refresh_token` (string): Long-lived token for obtaining new access tokens (expires 60 days)
+- `tenant_id` (string): Xero organization identifier
+- `expires_at` (datetime): Access token expiry timestamp (ISO 8601)
+- `token_type` (string): Always "Bearer" for Xero OAuth2
+- `scope` (string): Space-separated list of granted permissions
+
+**Validation Rules**:
+- `access_token` MUST be non-empty string
+- `refresh_token` MUST be non-empty string
+- `expires_at` MUST be future datetime for valid token
+- `tenant_id` MUST match Xero organization format
+
+**State Transitions**:
+- Token refresh: `expires_at` approaches → Use `refresh_token` → Get new `access_token` → Update file
+- Re-authentication required: `refresh_token` expired (60 days) → Run `setup_xero_oauth.py` → Get new tokens
+
+**Security**:
+- File MUST be gitignored (never commit to repository)
+- File permissions SHOULD be 600 (owner read/write only)
+- Tokens MUST be stored in vault root (not in repository)
+
+---
+
+### 6. Social_Media_Interaction
+
+**Description**: Detected social media interaction (comment, message, mention) requiring action. Created by social_media_watcher.py and processed by triage.
+
+**Location**: `AI_Employee_Vault/Needs_Action/social_interaction_*.md`
+
+**Frontmatter Schema**:
+```yaml
+---
+type: "social_media_notification"   # literal - Type identifier
+platform: "facebook"                 # enum - Platform: facebook|instagram|twitter
+interaction_type: "comment"          # enum - Type: comment|message|mention
+priority: "HIGH"                     # enum - Priority: HIGH|MEDIUM|LOW
+detected: "2026-01-06T10:30:00Z"    # datetime - Detection timestamp
+author_name: "John Doe"              # string - Author display name
+author_handle: "@johndoe"            # string - Author username/handle
+post_url: "https://facebook.com/..." # string - Link to original post
+detected_keywords:                   # list - Keywords that triggered priority
+  - "pricing"
+  - "project"
+suggested_response: "Hi! Thanks..." # string - Pre-drafted response
+---
+```
+
+**Body Structure**:
+```markdown
+# Social Media Interaction: Facebook - Comment
+
+**Platform**: Facebook
+**Source**: Comment on post "Latest Project Update"
+**Author**: John Doe (@johndoe)
+**Time**: 2 hours ago
+
+## Content
+
+"Hi, I'm interested in your services. What's your pricing?"
+
+## Context
+
+- Post URL: https://facebook.com/posts/123456
+- Post date: January 5, 2026
+- Post engagement: 25 likes, 8 comments
+
+## Analysis
+
+**Intent**: Pricing inquiry
+**Sentiment**: Positive
+**Priority**: HIGH - Client showing purchase intent
+
+## Suggested Actions
+
+- Respond with pricing information
+- Ask about project scope
+- Offer consultation call
+
+## Automated Response Draft
+
+"Hi John! Thanks for your interest. Our pricing varies by project scope - typically $2,000-$5,000 for small to medium websites. Would you like to schedule a quick call to discuss your specific needs?"
+```
+
+**Validation Rules**:
+- `platform` MUST be one of: facebook, instagram, twitter
+- `interaction_type` MUST match platform capabilities
+- `priority` MUST be one of: HIGH, MEDIUM, LOW
+- `post_url` MUST be valid URL
+- `detected_keywords` list MUST be non-empty if `priority == "HIGH"` or `MEDIUM`
+
+**State Transitions**: None (created by watcher, processed by triage, moved to Done/)
+
+**Indexes**: Queryable by `platform`, `priority`, `detected` timestamp
+
+---
+
+### 7. Engagement_Summary
+
+**Description**: Daily summary report of social media interactions across all platforms. Auto-generated by social_media_watcher.py at 6:00 PM.
+
+**Location**: `AI_Employee_Vault/Briefings/Social_Media_YYYY-MM-DD.md`
+
+**Frontmatter Schema**:
+```yaml
+---
+generated_date: "2026-01-06T18:00:00Z" # datetime - Report generation timestamp
+platforms:                           # list - Platforms monitored
+  - facebook
+  - instagram
+  - twitter
+total_interactions: 33              # integer - Total interactions detected
+action_items_created: 3              # integer - HIGH/MEDIUM priority items
+response_rate: 90.0                  # float - % of interactions responded to
+---
+```
+
+**Body Structure**:
+```markdown
+# Social Media Engagement Summary - January 6, 2026
+
+## Facebook
+
+- **New Comments**: 5 (2 HIGH priority, 3 MEDIUM)
+- **New Messages**: 2
+- **Post Reactions**: 45 total across 3 posts
+- **Top Post**: [Link] - 25 reactions, 8 comments
+
+## Instagram
+
+- **New Comments**: 12 (1 HIGH priority, 11 MEDIUM)
+- **New DMs**: 3
+- **New Followers**: 8 (5 business accounts)
+- **Top Post**: [Link] - 50 likes, 12 comments
+
+## Twitter/X
+
+- **New Mentions**: 8
+- **New Replies**: 3
+- **New DMs**: 1
+- **Top Tweet**: [Link] - 15 retweets, 5 replies
+
+## Action Items Created
+
+- [x] Client pricing inquiry (HIGH) - Responded
+- [ ] Collaboration request (MEDIUM) - Awaiting approval
+- [ ] Support question (LOW) - Scheduled for batch response
+
+## Summary
+
+- Total interactions: 33
+- Action items created: 3
+- Response rate: 90%
+```
+
+**Validation Rules**:
+- `generated_date` MUST be valid ISO 8601 datetime
+- `platforms` list MUST include at least one platform
+- `total_interactions` MUST be non-negative integer
+- `response_rate` MUST be between 0-100
+
+**State Transitions**: None (generated once daily, never modified)
+
+**Indexes**: Queryable by `generated_date` for chronological navigation
+
+---
+
+## Entity Relationships
+
+```
+Business_Goals.md
+    ↓ (defines targets for)
+Monday_Briefing
+    ↓ (reads from)
+Accounting_Entry (Current_Month.md)
+    ↓ (synced from)
+Xero API (via Xero_Token)
+
+Social_Post_Action
+    ↓ (created by)
+User / Scheduled Posts
+    ↓ (executed via)
+social-media-browser-mcp (MCP server)
+    ↓ (logs to)
+Done/Social_Media_Posts/
+
+Social_Media_Interaction
+    ↓ (detected by)
+social-media-watcher
+    ↓ (aggregated into)
+Engagement_Summary
+```
+
+## Cross-Cutting Concerns
+
+### YAML Frontmatter Validation
+
+All entities with YAML frontmatter MUST:
+- Use double quotes for string values containing spaces
+- Use ISO 8601 format for all datetime fields (YYYY-MM-DDTHH:MM:SSZ)
+- Use null for optional fields (not empty string or dash)
+- Validate against Pydantic v2 schemas in MCP servers
+
+### Vault File Naming Conventions
+
+- Action items: `YYYY-MM-DD_brief_description.md` (snake_case)
+- Briefings: `YYYY-MM-DD_Monday_Briefing.md` or `YYYY-MM-DD_Social_Media.md`
+- Social posts: `social_post_platform_YYYYMMDD.md`
+- Interactions: `social_interaction_platform_YYYYMMDD_HHMMSS.md`
+
+### Timestamp Handling
+
+- All timestamps in UTC (ISO 8601 with 'Z' suffix)
+- Display in user's local timezone (via BRIEFING_TIMEZONE .env variable)
+- Store in vault as UTC, convert for display only
+
+### Currency Handling
+
+- All amounts stored in base currency (default: USD)
+- Multi-currency transactions converted before storage
+- Exchange rate at time of conversion recorded in notes field
+- Original amount and currency stored in separate column if different from base
+
+## Next Steps
+
+1. ✅ Data model complete
+2. ⏭️ Create contracts/ (API contracts for MCP tools)
+3. ⏭️ Create quickstart.md (setup and usage guide)
+4. ⏭️ Complete plan.md with technical context
+5. ⏭️ Run agent context update script

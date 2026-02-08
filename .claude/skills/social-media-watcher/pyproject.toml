@@ -1,0 +1,18 @@
+[project]
+name = "social-media-watcher"
+version = "1.0.0"
+description = "Social media engagement monitoring for Facebook, Instagram, Twitter/X"
+requires-python = ">=3.13"
+dependencies = [
+    "python-frontmatter>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.12.0",
+]

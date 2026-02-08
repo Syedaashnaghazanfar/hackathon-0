@@ -1,0 +1,36 @@
+[
+  {
+    "timestamp": "2026-01-24T16:37:08.545065",
+    "action_type": "send_email",
+    "execution_status": "dry_run",
+    "executor": "test_script",
+    "executor_id": "test",
+    "tool_name": "send_email",
+    "tool_inputs_sanitized": {
+      "to": "[EMAIL_REDACTED]",
+      "subject": "Test"
+    },
+    "approval_reason": null,
+    "approval_id": null,
+    "mcp_server": "email",
+    "error": null,
+    "retry_count": 0
+  },
+  {
+    "timestamp": "2026-01-24T16:39:35.026220",
+    "action_type": "send_email",
+    "execution_status": "dry_run",
+    "executor": "test_script",
+    "executor_id": "test",
+    "tool_name": "send_email",
+    "tool_inputs_sanitized": {
+      "to": "[EMAIL_REDACTED]",
+      "subject": "Test"
+    },
+    "approval_reason": null,
+    "approval_id": null,
+    "mcp_server": "email",
+    "error": null,
+    "retry_count": 0
+  }
+]
