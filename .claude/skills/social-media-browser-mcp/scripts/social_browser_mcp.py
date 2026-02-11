@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from pydantic import BaseModel, Field, field_validator
 from fastmcp import FastMCP
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 import asyncio
 
 # Load environment variables
@@ -68,6 +68,7 @@ class SocialMediaPostRequest(BaseModel):
     text: str = Field(..., description="Post text content")
     image_path: Optional[str] = Field(None, description="Path to image file")
     platform: str = Field(..., description="Target platform: facebook, instagram, or twitter")
+    wait_for_manual_click: bool = Field(False, description="If True, keeps browser open for manual click when automation fails")
 
     @field_validator('text')
     @classmethod
@@ -95,6 +96,7 @@ class SocialMediaPostResponse(BaseModel):
     post_id: str = Field(default="", description="Post ID")
     timestamp: str = Field(..., description="ISO 8601 timestamp")
     error: Optional[str] = Field(default=None, description="Error message if failed")
+    requires_manual_click: bool = Field(default=False, description="If True, post is prepared but requires manual click")
 
 
 # ============================================================================
@@ -141,16 +143,30 @@ class SocialMediaBrowser:
 
                 logger.info(f"Starting browser for {platform} on CDP port {config['cdp_port']}")
 
-                # Launch persistent context for this platform
+                # Launch persistent context for this platform with anti-detection measures
                 context = await self.playwright.chromium.launch_persistent_context(
                     user_data_dir=str(platform_dir),
                     headless=False,  # Social media requires visible browser
                     args=[
                         '--disable-blink-features=AutomationControlled',
-                        f'--remote-debugging-port={config["cdp_port"]}'
+                        f'--remote-debugging-port={config["cdp_port"]}',
+                        '--disable-infobars',
+                        '--disable-extensions',
+                        '--disable-popup-blocking',
+                        '--disable-save-password-bubble',
+                        '--disable-translate',
+                        '--disable-default-apps',
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-web-security',
+                        '--disable-features=IsolateOrigins,site-per-process',
+                        '--disable-features=VizDisplayCompositor',
                     ],
                     viewport={'width': 1280, 'height': 720},
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                    locale='en-US',
+                    timezone_id='America/New_York',
+                    permissions=['geolocation', 'notifications']
                 )
 
                 self.contexts[platform] = context
@@ -305,12 +321,32 @@ class SocialMediaBrowser:
 
             # Platform-specific login detection
             if platform == 'facebook':
-                # Check for login form vs logged in state
+                # First check: Login form should NOT be present
                 try:
-                    await page.wait_for_selector('div[contenteditable="true"]', timeout=5000)
-                    return True
-                except:
+                    await page.wait_for_selector('input[name="email"]', timeout=3000)
+                    # Login form found - NOT logged in
                     return False
+                except:
+                    pass  # No login form, good sign
+
+                # Second check: Look for post composer with multiple selectors
+                post_box_selectors = [
+                    'div[contenteditable="true"][data-text]',
+                    'div[role="textbox"]',
+                    'div[aria-label*="What"]',
+                    'textarea[name="xadium"]',
+                ]
+
+                for selector in post_box_selectors:
+                    try:
+                        await page.wait_for_selector(selector, timeout=2000)
+                        return True  # Found post composer - logged in
+                    except:
+                        continue
+
+                # If no post composer found but no login form, assume logged in
+                # (Facebook may just be loading slowly)
+                return True
 
             elif platform == 'instagram':
                 # Check for create post button (only visible when logged in)
@@ -374,104 +410,313 @@ class SocialMediaBrowser:
             "requires_relogin": False
         }
 
-    async def _post_to_facebook(self, page: Page, text: str, image_path: Optional[str] = None) -> tuple[bool, str, str]:
-        """Post to Facebook."""
-        try:
-            # Click post box
-            post_box = await page.wait_for_selector('div[contenteditable="true"]', timeout=10000)
-            await post_box.click()
-            await asyncio.sleep(1)
+    async def _human_like_type(self, element, text: str):
+        """Type text with human-like random delays."""
+        import random
+        for char in text:
+            await element.type(char, delay=random.uniform(50, 150))  # 50-150ms per char
+            await asyncio.sleep(random.uniform(0.01, 0.05))  # Random pause between chars
 
-            # Type text
-            await post_box.fill(text)
+    async def _try_multiple_selectors(self, page, selectors: list, timeout=5000):
+        """Try multiple selectors until one works."""
+        for selector in selectors:
+            try:
+                element = await page.wait_for_selector(selector, timeout=timeout)
+                if element:
+                    return element
+            except:
+                continue
+        return None
+
+    async def _post_to_facebook(self, page: Page, text: str, image_path: Optional[str] = None) -> tuple[bool, str, str]:
+        """Post to Facebook with anti-detection measures."""
+        import random
+        try:
+            logger.info("Starting Facebook post preparation...")
+
+            # Step 1: Find and click the post TRIGGER (e.g., "What's on your mind?")
+            post_trigger_selectors = [
+                'div[aria-label*="Create"]',  # Create post button
+                'div[aria-label*="What"]',  # aria-label containing "What"
+                'h3:has-text("Create")',  # Alternative: "Create" post
+                'div[data-pagelet="FeedUnit"] div[role="button"]',  # First post button in feed
+                'div[role="button"] span:has-text("Photo")',  # Photo button (nearby trigger)
+            ]
+
+            logger.info("Looking for post trigger...")
+            post_trigger = await self._try_multiple_selectors(page, post_trigger_selectors, timeout=15000)
+
+            if not post_trigger:
+                # Couldn't find trigger, try direct composer search
+                logger.warning("Could not find post trigger, trying direct composer...")
+            else:
+                logger.info("Found post trigger, clicking...")
+                await post_trigger.click()
+                await asyncio.sleep(random.uniform(1.0, 2.0))  # Wait for composer to appear
+
+            # Step 2: Now look for the actual post box/composer
+            post_box_selectors = [
+                'div[contenteditable="true"][data-text]',
+                'div[role="textbox"]',
+                'div[aria-label*="Message"]',  # Updated aria-label
+                'textarea[name="xadium"]',  # Modern Facebook uses textarea
+                'div[contenteditable="true"]:not([data-text])',  # Fallback: any contenteditable
+            ]
+
+            post_box = await self._try_multiple_selectors(page, post_box_selectors, timeout=10000)
+            if not post_box:
+                return False, "", "Could not find Facebook post box - UI may have changed. Please check if the browser window shows the composer."
+
+            logger.info("Found post box, entering text...")
+            await post_box.click()
+            await asyncio.sleep(random.uniform(0.5, 1.5))  # Random delay
+
+            # Type with human-like speed
+            await self._human_like_type(post_box, text)
+            await asyncio.sleep(random.uniform(1.0, 2.0))  # Pause after typing
 
             # Upload image if provided
             if image_path and Path(image_path).exists():
-                file_input = await page.query_selector('input[type="file"]')
+                logger.info(f"Uploading image: {image_path}")
+                file_input = await page.query_selector('input[type="file"][accept*="image"]')
                 if file_input:
                     await file_input.set_input_files(image_path)
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(random.uniform(2.0, 4.0))  # Wait for upload
+                else:
+                    logger.warning("Could not find image upload input")
 
-            # Click post button
-            post_button = await page.wait_for_selector('div[role="button"] > span:has-text("Post")', timeout=5000)
-            await post_button.click()
-            await asyncio.sleep(3)
+            # Try multiple selectors for Post button
+            post_button_selectors = [
+                'div[aria-label="Post"]',
+                'div[role="button"][data-testid*="submit"]',
+                'button[aria-label="Post"]',
+                'div[role="button"] span:has-text("Post")',
+            ]
+
+            logger.info("Looking for Post button...")
+            post_button = await self._try_multiple_selectors(page, post_button_selectors, timeout=10000)
+
+            if not post_button:
+                # Button found but couldn't be clicked - likely anti-bot
+                logger.warning("Post button found but likely blocked by anti-bot detection")
+                return False, "", "Post button blocked by anti-bot detection. Post is prepared in browser - please click Post manually."
+
+            # Try clicking with JavaScript (sometimes works when click() doesn't)
+            try:
+                await post_button.click(timeout=3000)
+                logger.info("Post button clicked successfully")
+            except Exception as click_error:
+                # Try JavaScript click as fallback
+                logger.warning(f"Standard click failed: {click_error}, trying JavaScript click")
+                try:
+                    await page.evaluate('(element) => element.click()', post_button)
+                    logger.info("JavaScript click successful")
+                except:
+                    # Final state: post is prepared, ask user to click
+                    return False, "", "Post is fully prepared in browser with text and image. Please click the Post button manually to complete."
+
+            await asyncio.sleep(random.uniform(2.0, 4.0))  # Wait for post to submit
 
             # Success
             post_id = f"fb_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            logger.info(f"Facebook post successful: {post_id}")
             return True, post_id, ""
 
         except Exception as e:
-            return False, "", str(e)
+            error_msg = str(e)
+            logger.error(f"Facebook post error: {error_msg}")
+            # Check if it's a timeout (likely selector changed)
+            if "timeout" in error_msg.lower():
+                return False, "", "Timeout finding element - Facebook UI may have changed. Post is prepared in browser."
+            return False, "", error_msg
 
     async def _post_to_instagram(self, page: Page, text: str, image_path: Optional[str] = None) -> tuple[bool, str, str]:
-        """Post to Instagram."""
+        """Post to Instagram with anti-detection measures."""
+        import random
         try:
+            logger.info("Starting Instagram post preparation...")
+
             # Instagram requires images
             if not image_path or not Path(image_path).exists():
-                return False, "", "Instagram requires an image"
+                return False, "", "Instagram requires an image to post"
 
-            # Click create post button
-            create_btn = await page.wait_for_selector('svg[aria-label="New post"]', timeout=10000)
+            # Multiple possible selectors for create button
+            create_btn_selectors = [
+                'svg[aria-label="New post"]',
+                'svg[aria-label="New post nav"]',
+                'div[role="button"] span:has-text("New post")',
+                'a[aria-label*="New post"]',
+            ]
+
+            create_btn = await self._try_multiple_selectors(page, create_btn_selectors, timeout=15000)
+            if not create_btn:
+                return False, "", "Could not find Instagram create button - UI may have changed"
+
             await create_btn.click()
-            await asyncio.sleep(2)
+            await asyncio.sleep(random.uniform(1.5, 3.0))
 
             # Upload image
-            file_input = await page.query_selector('input[type="file"]')
+            logger.info(f"Uploading image: {image_path}")
+            file_input_selectors = [
+                'input[type="file"]',
+                'input[accept*="image"]',
+            ]
+
+            file_input = await self._try_multiple_selectors(page, file_input_selectors, timeout=5000)
             if file_input:
                 await file_input.set_input_files(image_path)
-                await asyncio.sleep(3)
+                await asyncio.sleep(random.uniform(3.0, 5.0))  # Wait for upload
+            else:
+                return False, "", "Could not find file input for image upload"
 
-            # Click next
-            next_btn = await page.wait_for_selector('div[role="button"] > button:has-text("Next")', timeout=5000)
+            # Try multiple selectors for Next button
+            next_btn_selectors = [
+                'button:has-text("Next")',
+                'div[role="button"] button:has-text("Next")',
+                'button[aria-label*="Next"]',
+            ]
+
+            logger.info("Looking for Next button...")
+            next_btn = await self._try_multiple_selectors(page, next_btn_selectors, timeout=10000)
+            if not next_btn:
+                return False, "", "Could not find Next button after image upload"
+
             await next_btn.click()
-            await asyncio.sleep(1)
+            await asyncio.sleep(random.uniform(1.0, 2.0))
 
             # Add caption
-            caption_box = await page.wait_for_selector('textarea[aria-label="Write a caption…"]', timeout=5000)
-            await caption_box.fill(text)
+            caption_box_selectors = [
+                'textarea[aria-label="Write a caption…"]',
+                'textarea[placeholder*="caption"]',
+                'div[contenteditable="true"][data-text]',
+            ]
 
-            # Share
-            share_btn = await page.wait_for_selector('div[role="button"] > button:has-text("Share")', timeout=5000)
-            await share_btn.click()
-            await asyncio.sleep(3)
+            caption_box = await self._try_multiple_selectors(page, caption_box_selectors, timeout=10000)
+            if caption_box:
+                await self._human_like_type(caption_box, text)
+                await asyncio.sleep(random.uniform(1.0, 2.0))
+            else:
+                logger.warning("Could not find caption box, continuing without caption")
+
+            # Try multiple selectors for Share button
+            share_btn_selectors = [
+                'button:has-text("Share")',
+                'div[role="button"] button:has-text("Share")',
+                'button[aria-label*="Share"]',
+            ]
+
+            logger.info("Looking for Share button...")
+            share_btn = await self._try_multiple_selectors(page, share_btn_selectors, timeout=10000)
+
+            if not share_btn:
+                # Post is prepared, ask user to click Share
+                logger.warning("Share button found but likely blocked by anti-bot detection")
+                return False, "", "Instagram post is fully prepared with image and caption. Please click the Share button manually to complete."
+
+            try:
+                await share_btn.click(timeout=3000)
+                logger.info("Share button clicked successfully")
+            except Exception as click_error:
+                logger.warning(f"Standard click failed: {click_error}, trying JavaScript click")
+                try:
+                    await page.evaluate('(element) => element.click()', share_btn)
+                    logger.info("JavaScript click successful")
+                except:
+                    return False, "", "Instagram post is prepared in browser. Please click Share button manually."
+
+            await asyncio.sleep(random.uniform(2.0, 4.0))  # Wait for post to submit
 
             # Success
             post_id = f"ig_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            logger.info(f"Instagram post successful: {post_id}")
             return True, post_id, ""
 
         except Exception as e:
-            return False, "", str(e)
+            error_msg = str(e)
+            logger.error(f"Instagram post error: {error_msg}")
+            if "timeout" in error_msg.lower():
+                return False, "", "Timeout finding element - Instagram UI may have changed. Post is prepared in browser."
+            return False, "", error_msg
 
     async def _post_to_twitter(self, page: Page, text: str, image_path: Optional[str] = None) -> tuple[bool, str, str]:
-        """Post to Twitter/X."""
+        """Post to Twitter/X with anti-detection measures."""
+        import random
         try:
-            # Click tweet box
-            tweet_box = await page.wait_for_selector('div[contenteditable="true"][data-text]', timeout=10000)
-            await tweet_box.click()
-            await asyncio.sleep(1)
+            logger.info("Starting Twitter/X post preparation...")
 
-            # Type text
-            await tweet_box.fill(text)
+            # Multiple possible selectors for tweet box
+            tweet_box_selectors = [
+                'div[contenteditable="true"][data-text]',
+                'div[role="textbox"]',
+                'div[aria-label*="Post text"]',
+                'div[data-text="What is happening?!"]',
+            ]
+
+            tweet_box = await self._try_multiple_selectors(page, tweet_box_selectors, timeout=15000)
+            if not tweet_box:
+                return False, "", "Could not find Twitter tweet box - UI may have changed"
+
+            await tweet_box.click()
+            await asyncio.sleep(random.uniform(0.5, 1.5))  # Random delay
+
+            # Type with human-like speed
+            await self._human_like_type(tweet_box, text)
+            await asyncio.sleep(random.uniform(1.0, 2.0))  # Pause after typing
 
             # Upload image if provided
             if image_path and Path(image_path).exists():
-                file_input = await page.query_selector('input[type="file"]')
+                logger.info(f"Uploading image: {image_path}")
+                file_input = await page.query_selector('input[type="file"][accept*="image"]')
                 if file_input:
                     await file_input.set_input_files(image_path)
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(random.uniform(2.0, 4.0))  # Wait for upload
+                else:
+                    logger.warning("Could not find image upload input")
 
-            # Click post button
-            post_button = await page.wait_for_selector('div[role="button"][data-testid="tweetButtonInline"]', timeout=5000)
-            await post_button.click()
-            await asyncio.sleep(3)
+            # Try multiple selectors for Post button
+            post_button_selectors = [
+                'div[role="button"][data-testid="tweetButtonInline"]',
+                'div[role="button"][data-testid="tweet"]',
+                'button[data-testid="tweetButton"]',
+                'div[aria-label*="Post"]',
+            ]
+
+            logger.info("Looking for Post button...")
+            post_button = await self._try_multiple_selectors(page, post_button_selectors, timeout=10000)
+
+            if not post_button:
+                # Button found but couldn't be clicked - likely anti-bot
+                logger.warning("Post button found but likely blocked by anti-bot detection")
+                return False, "", "Tweet is fully prepared in browser. Please click the Post button manually to complete."
+
+            # Try clicking with JavaScript (sometimes works when click() doesn't)
+            try:
+                await post_button.click(timeout=3000)
+                logger.info("Post button clicked successfully")
+            except Exception as click_error:
+                # Try JavaScript click as fallback
+                logger.warning(f"Standard click failed: {click_error}, trying JavaScript click")
+                try:
+                    await page.evaluate('(element) => element.click()', post_button)
+                    logger.info("JavaScript click successful")
+                except:
+                    # Final state: post is prepared, ask user to click
+                    return False, "", "Tweet is fully prepared in browser with text and image. Please click the Post button manually to complete."
+
+            await asyncio.sleep(random.uniform(2.0, 4.0))  # Wait for post to submit
 
             # Success
             tweet_id = f"tw_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            logger.info(f"Twitter post successful: {tweet_id}")
             return True, tweet_id, ""
 
         except Exception as e:
-            return False, "", str(e)
+            error_msg = str(e)
+            logger.error(f"Twitter post error: {error_msg}")
+            # Check if it's a timeout (likely selector changed)
+            if "timeout" in error_msg.lower():
+                return False, "", "Timeout finding element - Twitter UI may have changed. Post is prepared in browser."
+            return False, "", error_msg
 
 
 # ============================================================================

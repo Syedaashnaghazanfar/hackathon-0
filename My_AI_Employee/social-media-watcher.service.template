@@ -1,0 +1,17 @@
+[Unit]
+Description=Gold Tier Social Media Watcher
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/path/to/My_AI_Employee
+Environment="PATH=/path/to/My_AI_Employee/.venv/bin"
+ExecStart=/path/to/My_AI_Employee/.venv/bin/python src/my_ai_employee/watchers/social_media_watcher.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -127,6 +127,32 @@ module.exports = {
       merge_logs: true,
       kill_timeout: 5000,
     },
+    // =============================================================================
+    // GOLD TIER: Social Media Watcher
+    // =============================================================================
+    {
+      name: 'social-media-watcher',
+      script: 'src/my_ai_employee/watchers/social_media_watcher.py',
+      interpreter: 'python',
+      cwd: __dirname,
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 5000,
+      watch: false,
+      env_file: '.env',  // Load environment variables from .env file
+      env: {
+        NODE_ENV: 'production',
+        PYTHONUNBUFFERED: '1',
+      },
+      error_file: './logs/social-media-watcher-error.log',
+      out_file: './logs/social-media-watcher-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      kill_timeout: 5000,
+    },
   ],
 
   /**
