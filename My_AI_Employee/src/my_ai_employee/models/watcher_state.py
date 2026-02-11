@@ -14,10 +14,10 @@ class WatcherStateSchema:
     """
     Watcher State entity schema.
 
-    Storage location: ./<watcher_name>_dedupe.json (e.g., .gmail_dedupe.json)
+    Storage location: ./<watcher_name>_dedupe.json (e.g., .gmail_dedupe.json, .social_media_dedupe.json)
     """
 
-    watcher_name: Literal["gmail", "whatsapp", "linkedin", "filesystem"]
+    watcher_name: Literal["gmail", "whatsapp", "linkedin", "filesystem", "social_media"]
     last_check: datetime
     health_status: Literal["healthy", "degraded", "failed"]
 
